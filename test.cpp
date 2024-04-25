@@ -70,5 +70,17 @@ int main() {
         std::cout << item.name << ' ' << item.value << std::endl;
     }
 
+    Registrar<Person>().Regist("Person").AddVariable<decltype(&Person::height)>("height").
+    AddFunction<decltype(&Person::Introduce)>("Introduce"); 
+    typeinfo = GetType<Person>();
+    const Class* classinfo = typeinfo->AsClass();
+    std::cout << classinfo->getName() << std::endl;
+    for (auto var : classinfo->GetVariables()) {
+        std::cout << var.name << '(' << var.type->getName() << ')' << std::endl;
+    }
+    for (auto func : classinfo->GetFunctions()) {
+        std::cout << func.name << '(' << func.retType->getName() << ')' << std::endl;
+    }
+
     return 0;
 }

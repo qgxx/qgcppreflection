@@ -14,6 +14,7 @@ class Class;
 class Type {
 public:
     template <typename T> friend class EnumFactory;
+    template <typename T> friend class ClassFactory;
 
     enum class Kind {
         Numeric,
@@ -98,7 +99,7 @@ private:
             return Kind::Char;
         }
         else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, long>) {
-            return Kind::Int32
+            return Kind::Int32;
         }
         else if constexpr (std::is_same_v<T, long long>) {
             return Kind::Int64;
@@ -138,7 +139,56 @@ private:
 };
 
 class Class : public Type {
+public:
+    struct MemberVariable {
+        std::string name;
+        const Type* type;
 
+        template <typename T>
+        static MemberVariable Create(const std::string& name) {
+            using type = typename variable_traits<T>::type; 
+            return MemberVariable { name, GetType<type>() };
+        }
+    };
+
+    struct MemberFunction {
+        std::string name;
+        const Type* retType;
+        std::vector<const Type*> paramTypes;
+
+        template <typename T>
+        static MemberFunction Create(const std::string& name) {
+            using traits = function_traits<T>;
+            using args = typename traits::args;
+            return MemberFunction { name, GetType<typename traits::ret_type>(), 
+            cvtTypeList2Vector<args>(std::make_index_sequence<std::tuple_size_v<args>>()) };
+        }
+
+        private:
+            template<typename Params, size_t... Idx>
+            static std::vector<const Type*> cvtTypeList2Vector(std::index_sequence<Idx...>) {
+                return { GetType<std::tuple_element_t<Idx, Params>>() ... };
+            }
+    };
+
+public:
+    Class() : Type { "Unknown-Class", Type::Kind::Class } {}
+    Class(const std::string& name) : Type { name, Type::Kind::Class } {}
+
+    void AddVar(MemberVariable&& var) {
+        vars_.emplace_back(std::move(var));
+    } 
+
+    void AddFunc(MemberFunction&& func) {
+        funcs_.emplace_back(std::move(func));
+    }
+
+    auto& GetVariables() const { return vars_; }
+    auto& GetFunctions() const { return funcs_; }
+
+private:
+    std::vector<MemberVariable> vars_;
+    std::vector<MemberFunction> funcs_;
 };
 
 template <typename T>
@@ -182,6 +232,42 @@ private:
     Enum info_;
 };
 
+template <typename T>
+class ClassFactory final {
+public:
+    static ClassFactory& Instance() {
+        static ClassFactory instance;
+        return instance;
+    }
+
+    auto& Info() const { return info_; }
+
+    ClassFactory& Regist(const std::string name) {
+        info_.name_ = name;
+        return *this;
+    }
+
+    template <typename U>
+    ClassFactory& AddVariable(const std::string& name) {
+        info_.AddVar(Class::MemberVariable::Create<U>(name));
+        return *this;
+    }
+
+    template <typename U>
+    ClassFactory& AddFunction(const std::string& name) {
+        info_.AddFunc(Class::MemberFunction::Create<U>(name));
+        return *this;
+    }
+
+    void Unregist() {
+        info_ = Class{};
+    }
+
+private:
+    Class info_;
+
+};
+
 class TrivalFactory {
 public:
     static TrivalFactory& Instance() {
@@ -197,14 +283,15 @@ template <typename T>
 class Factory final {
 public:
     static auto& GetFactory() {
-        if constexpr (std::is_fundamental_v<T>) {
-            return NumericFactory<T>::Instance();
+        using type = std::remove_reference_t<T>;
+        if constexpr (std::is_fundamental_v<type>) {
+            return NumericFactory<type>::Instance();
         } 
-        else if constexpr (std::is_enum_v<T>) {
-            return EnumFactory<T>::Instance();
+        else if constexpr (std::is_enum_v<type>) {
+            return EnumFactory<type>::Instance();
         }
-        else if constexpr (std::is_class_v<T>) {
-            //
+        else if constexpr (std::is_class_v<type>) {
+            return ClassFactory<type>::Instance();
         }
         else {
             return TrivalFactory::Instance();
