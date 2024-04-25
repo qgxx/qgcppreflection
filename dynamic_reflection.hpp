@@ -69,7 +69,9 @@ public:
         Int32,
         Int64,
         Float,
-        Double
+        Double,
+        Void,
+        Bool
     };
 
     Numeric(Kind kind, bool isSigned) : Type { getName(kind), Type::Kind::Numeric }, 
@@ -90,6 +92,8 @@ private:
             case Kind::Int64: return "Int64";
             case Kind::Float: return "Float";
             case Kind::Double: return "Double";
+            case Kind::Void: return "Void";
+            case Kind::Bool: return "Bool";
             default: return "Unknown";
         }
     }
@@ -109,6 +113,12 @@ private:
         }
         else if constexpr (std::is_same_v<T, double>) {
             return Kind::Double;
+        }
+        else if constexpr (std::is_same_v<T, void>) {
+            return Kind::Void;
+        }
+        else if constexpr (std::is_same_v<T, bool>) {
+            return Kind::Bool;
         }
         else {
             return Kind::Unknown;
