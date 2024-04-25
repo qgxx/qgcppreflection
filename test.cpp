@@ -1,6 +1,7 @@
 #include "variable_traits.hpp"
 #include "function_traits.hpp"
 #include "static_reflection.hpp"
+#include "dynamic_reflection.hpp"
 
 #include <string>
 #include <iostream>
@@ -46,12 +47,28 @@ void VisitTuple(const std::tuple<Args...>& tuple, Class* instance) {
     }
 }
 
+enum class TestEnum {
+    val1 = 1,
+    val2 = 2
+};
+
 int main() {
     constexpr auto info = reflected_type<Person>();
     std::cout << std::get<0>(info.functions).name << std::endl;
 
     Person person;
     VisitTuple<0>(info.functions, &person);
+
+    Registrar<TestEnum>().Regist("TestEnum").Add("val1", TestEnum::val1).Add("val2", TestEnum::val2);
+    Registrar<Type::Kind>().Regist("Kind");
+    const Type* typeinfo = GetType<TestEnum>();
+    const Enum* enuminfo = typeinfo->AsEnum();
+    typeinfo = GetType<Type::Kind>();
+    std::cout << typeinfo->getName() << std::endl;
+    std::cout << enuminfo->getName() << std::endl;
+    for (auto& item : enuminfo->getItems()) {
+        std::cout << item.name << ' ' << item.value << std::endl;
+    }
 
     return 0;
 }

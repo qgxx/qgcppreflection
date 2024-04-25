@@ -1,10 +1,11 @@
 #ifndef __STATIC_REFLECTION_H__
 #define __STATIC_REFLECTION_H__
 
-#include <type_traits>
-#include <string_view>
 #include "variable_traits.hpp"
 #include "function_traits.hpp"
+
+#include <type_traits>
+#include <string_view>
 
 template <typename T> struct TypeInfo;
 
@@ -69,10 +70,6 @@ template <typename T> struct basic_field_traits<T, false> : public variable_trai
 
     constexpr bool is_variable() const {
         return true;
-    }
-
-    constexpr size_t param_count() const {
-        return std::tuple_size_v<typename traits::args>;
     }
 };
 
