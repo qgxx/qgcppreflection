@@ -2,6 +2,7 @@
 #include "function_traits.hpp"
 #include "static_reflection.hpp"
 #include "dynamic_reflection.hpp"
+#include "type_list.hpp"
 
 #include <string>
 #include <iostream>
@@ -52,6 +53,18 @@ enum class TestEnum {
     val2 = 2
 };
 
+template <typename T> struct is_integral {
+    static constexpr bool value = std::is_integral_v<T>;
+};
+
+template <typename T> struct all_to_float {
+    using type = float;
+};
+
+template <typename T> struct is_not_char {
+    static constexpr bool value = !std::is_same_v<T, char>;
+};
+
 int main() {
     constexpr auto info = reflected_type<Person>();
     std::cout << std::get<0>(info.functions).name << std::endl;
@@ -71,7 +84,8 @@ int main() {
     }
 
     Registrar<Person>().Regist("Person").AddVariable<decltype(&Person::height)>("height").
-    AddFunction<decltype(&Person::Introduce)>("Introduce"); 
+    AddFunction<decltype(&Person::Introduce)>("Introduce").
+    AddFunction<decltype(&Person::GetMarried)>("GetMarried");
     typeinfo = GetType<Person>();
     const Class* classinfo = typeinfo->AsClass();
     std::cout << classinfo->getName() << std::endl;
@@ -79,8 +93,28 @@ int main() {
         std::cout << var.name << '(' << var.type->getName() << ')' << std::endl;
     }
     for (auto func : classinfo->GetFunctions()) {
-        std::cout << func.name << '(' << func.retType->getName() << ')' << std::endl;
+        std::cout << func.name << '(' << func.retType->getName() << ": ";
+        bool firt_par = true;
+        for (auto param : func.paramTypes) {
+            if (!firt_par) std::cout << ", ";
+            std::cout << param->getName();
+            firt_par = false;
+        }
+        std::cout << ')' << std::endl;
     }
+
+    using tl = type_list<void, bool, char, int, float, double>;
+    using first_elem = head<tl>;
+    using tail_elem = tail<tl>;
+    using second_elem = ithType<tl, 1>;
+
+    constexpr auto value = count<tl, is_integral>;
+    
+    using tl_map = map<tl, all_to_float>;
+    using tl_cons = cons<tl, long long>; 
+    using tl_concat = concat<tl_map, tl_cons>;
+    using tl_init = init<tl>;
+    using tl_filter = filter<tl, is_not_char>;
 
     return 0;
 }
